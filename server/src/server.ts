@@ -1,16 +1,18 @@
-import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { PrismaClient } from "@prisma/client";
+
 import authRoutes from "./routes/authRoutes";
 import productRoutes from "./routes/productRoutes";
 import couponRoutes from "./routes/couponRoutes";
 import settingRoutes from "./routes/settingRoutes";
 import cartRoutes from "./routes/cartRoutes";
 import addressRoutes from "./routes/addressRoutes";
+import orderRoutes from "./routes/orderRoutes";
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -33,6 +35,7 @@ app.use("/api/coupon", couponRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/address", addressRoutes);
+app.use("/api/order", orderRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello form E-Commerce backend");

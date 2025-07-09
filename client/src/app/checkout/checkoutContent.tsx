@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PayPalButtons } from "@paypal/react-paypal-js";
 
@@ -11,18 +12,24 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 
+import { useOrderStore } from "@/store/useOrderStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useProductStore } from "@/store/useProductStore";
 import { CartItem, useCartStore } from "@/store/useCartStore";
 import { Coupon, useCouponStore } from "@/store/useCouponStore";
+import { paymentAction } from "@/actions/payment";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const CheckoutContent = () => {
   const router = useRouter();
 
   const { addresses, fetchAddresses } = useAddressStore();
   const { getProductById } = useProductStore();
-  const { items, fetchCart } = useCartStore();
+  const { items, fetchCart, clearCart } = useCartStore();
   const { fetchAllCoupons, couponList } = useCouponStore();
+  const { createFinalOrder, createPayPalOrder, capturePayPalOrde } =
+    useOrderStore();
+  const { user } = useAuthStore();
 
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>();
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
@@ -93,6 +100,61 @@ const CheckoutContent = () => {
     setCouponCode("");
   };
 
+  const handlePrePaymentFlow = async () => {
+    const result = await paymentAction(checkoutEmail);
+    if (!result.success) {
+      toast.error(result.error || "An error occurred. Please try again.");
+      return;
+    }
+
+    setShowPaymentFlow(true);
+  };
+
+  const handleFinalOrderCreation = async (captureResult: any) => {
+    if (!user) {
+      toast.error("You must be logged in to place an order.");
+      return;
+    }
+
+    try {
+      if (!selectedAddress) {
+        toast.error("Please select a delivery address.");
+        return;
+      }
+
+      const orderData = {
+        userId: user?.id,
+        addressId: selectedAddress,
+        items: cartItemsWithDetails.map((item) => ({
+          productId: item.productId,
+          productName: item.product.name,
+          productCategory: item.product.category,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+          price: item.product.price,
+        })),
+        couponId: appliedCoupon ? appliedCoupon.id : undefined,
+        total,
+        paymentMethod: "CREDIT_CARD" as const,
+        paymentStatus: "COMPLETED" as const,
+        paymentId: captureResult.id,
+      };
+
+      const createFinalOrderResult = await createFinalOrder(orderData);
+
+      if (createFinalOrderResult) {
+        await clearCart();
+        router.push("/account");
+      } else {
+        toast.error("Failed to create final order. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating final order:", error);
+      toast.error("There is some error while processing your order.");
+    }
+  };
+
   const subTotal = cartItemsWithDetails.reduce(
     (total, item) => total + (item.product.price || 0) * item.quantity,
     0
@@ -158,6 +220,28 @@ const CheckoutContent = () => {
                       label: "pay",
                     }}
                     fundingSource="card"
+                    createOrder={async () => {
+                      const orderId = await createPayPalOrder(
+                        cartItemsWithDetails,
+                        total
+                      );
+                      if (orderId === null) {
+                        alert("Failed to create PayPal order");
+                        return "";
+                      }
+                      return orderId;
+                    }}
+                    onApprove={async (data) => {
+                      const captureResult = await capturePayPalOrde(
+                        data.orderID
+                      );
+
+                      if (captureResult) {
+                        await handleFinalOrderCreation(captureResult);
+                      } else {
+                        alert("Failed to capture PayPal order");
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -175,7 +259,9 @@ const CheckoutContent = () => {
                         setCheckoutEmail(e.target.value)
                       }
                     />
-                    <Button>Proceed to Buy</Button>
+                    <Button onClick={handlePrePaymentFlow}>
+                      Proceed to Buy
+                    </Button>
                   </div>
                 </div>
               )}

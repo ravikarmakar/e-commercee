@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,9 +10,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import { Address, useAddressStore } from "@/store/useAddressStore";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useOrderStore } from "@/store/useOrderStore";
 
 const initialAddressFormState = {
   name: "",
@@ -33,12 +44,12 @@ const UserAccountPage = () => {
   const [showAddresses, setShowAddresses] = useState(false);
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [formData, setFormData] = useState(initialAddressFormState);
+  const { userOrders, getOrdersByUserId, isLoading } = useOrderStore();
 
   useEffect(() => {
     fetchAddresses();
-  }, [fetchAddresses]);
-
-  console.log(addresses);
+    getOrdersByUserId();
+  }, [fetchAddresses, getOrdersByUserId]);
 
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +109,28 @@ const UserAccountPage = () => {
     }
   };
 
-  console.log(addresses);
+  const getStatusColor = (
+    status: "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED"
+  ) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-blue-500";
+
+      case "PROCESSING":
+        return "bg-yellow-500";
+
+      case "SHIPPED":
+        return "bg-purple-500";
+
+      case "DELIVERED":
+        return "bg-green-500";
+
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  if (isLoading) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -112,7 +144,55 @@ const UserAccountPage = () => {
             <TabsTrigger value="addresses">Addresses</TabsTrigger>
           </TabsList>
           <TabsContent value="orders">
-            <h1>Orders History</h1>
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold">Order History</h2>
+                {userOrders.length === 0 && (
+                  <h1 className="text-2xl font-bold">
+                    Your havn&apos;t placed an Order yet
+                  </h1>
+                )}
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order #</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Items</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">
+                            {order.id}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {order.item.length}{" "}
+                            {order.item.length > 1 ? "Items" : "Item"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={`${getStatusColor(order.status)}`}
+                            >
+                              {order.status.charAt(0).toUpperCase() +
+                                order.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>${order.total.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           <TabsContent value="addresses">
             <Card>
