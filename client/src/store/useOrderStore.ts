@@ -33,7 +33,7 @@ export interface AdminOrder {
   id: string;
   userId: string;
   addressId: string;
-  items: OrderItem[];
+  item: OrderItem[];
   couponId?: string;
   total: number;
   status: "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED";

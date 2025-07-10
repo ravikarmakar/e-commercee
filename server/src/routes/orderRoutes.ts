@@ -20,7 +20,7 @@ router.post("/capture-paypal-order", capturePaypalOrder);
 router.post("/create-final-order", createFinalOrder);
 router.get("/get-single-order/:orderId", getOrder);
 router.get("/get-order-by-user-id", getOrderByUserId);
-router.get("get-all-orders-for-admin", isSuperAdmin, getAllOrdersForAdmin);
+router.get("/get-all-orders-for-admin", isSuperAdmin, getAllOrdersForAdmin);
 router.put("/:orderId/status", isSuperAdmin, updateOrderStatus);
 
 export default router;

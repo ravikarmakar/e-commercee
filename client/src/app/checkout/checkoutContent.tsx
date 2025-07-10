@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 
@@ -27,8 +28,12 @@ const CheckoutContent = () => {
   const { getProductById } = useProductStore();
   const { items, fetchCart, clearCart } = useCartStore();
   const { fetchAllCoupons, couponList } = useCouponStore();
-  const { createFinalOrder, createPayPalOrder, capturePayPalOrde } =
-    useOrderStore();
+  const {
+    createFinalOrder,
+    createPayPalOrder,
+    capturePayPalOrde,
+    isPaymentProcessing,
+  } = useOrderStore();
   const { user } = useAuthStore();
 
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>();
@@ -163,6 +168,18 @@ const CheckoutContent = () => {
     ? (subTotal * appliedCoupon.discountPercent) / 100
     : 0;
   const total = subTotal - discountAmount;
+
+  if (isPaymentProcessing) {
+    return (
+      <Skeleton className="w-full h-[600px] rounded-xl">
+        <div className="h-full flex justify-center items-center">
+          <h1 className="text-3xl font-bold">
+            Processing payment...Please wait!
+          </h1>
+        </div>
+      </Skeleton>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white py-8">

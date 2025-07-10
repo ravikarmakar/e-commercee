@@ -225,7 +225,7 @@ export const updateOrderStatus = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const orderId = req.params.id;
+    const { orderId } = req.params;
     const { status } = req.body;
 
     if (!userId) {
